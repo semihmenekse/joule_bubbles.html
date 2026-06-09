@@ -24,15 +24,14 @@
     height: 720px;
   }
 
-  /* Center image — crisp, natural size */
   .center-card {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 820px;
-    border-radius: 16px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    width: 680px;
+    border-radius: 14px;
+    box-shadow: 0 12px 60px rgba(0,0,0,0.5);
     overflow: hidden;
     z-index: 5;
   }
@@ -41,16 +40,13 @@
     width: 100%;
     height: auto;
     display: block;
-    border-radius: 16px;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
+    border-radius: 14px;
   }
 
-  /* Bubble pills */
   .bubble {
     position: absolute;
-    background: rgba(30, 15, 60, 0.90);
-    border: 1px solid rgba(160, 110, 255, 0.55);
+    background: rgba(20, 10, 45, 0.92);
+    border: 1px solid rgba(140, 90, 255, 0.55);
     border-radius: 30px;
     padding: 9px 16px;
     color: #fff;
@@ -60,7 +56,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 4px 18px rgba(100, 50, 200, 0.3);
+    box-shadow: 0 4px 20px rgba(80, 30, 180, 0.4);
     pointer-events: none;
     z-index: 20;
   }
@@ -78,7 +74,6 @@
 
 <div class="scene" id="scene">
   <div id="bubble-container" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20;overflow:visible;"></div>
-
   <div class="center-card">
     <img src="joule_app.png" alt="Joule Work Desktop">
   </div>
@@ -86,18 +81,18 @@
 
 <script>
   const bubbleTexts = [
-    { text: "Write my daily standup",       emoji: "🟡" },
-    { text: "Write a follow-up email",       emoji: "📋" },
-    { text: "Summarise meeting transcript",  emoji: "📄" },
-    { text: "Search the web for...",         emoji: "🔍" },
-    { text: "Talk to Joule...",              emoji: "🎙️" },
-    { text: "Draft a Jira ticket",           emoji: "🎯" },
-    { text: "Analyse this CSV file",         emoji: "📊" },
-    { text: "Run my standup skill",          emoji: "⚡" },
-    { text: "Run ISP T Codes",               emoji: "💻" },
-    { text: "Create SAP Macro",              emoji: "🔧" },
-    { text: "Approve EDX ticket",            emoji: "✅" },
-    { text: "Scan my emails",               emoji: "📧" },
+    { text: "Write my daily standup",      emoji: "🟡" },
+    { text: "Write a follow-up email",      emoji: "📋" },
+    { text: "Summarise meeting transcript", emoji: "📄" },
+    { text: "Search the web for...",        emoji: "🔍" },
+    { text: "Talk to Joule...",             emoji: "🎙️" },
+    { text: "Draft a Jira ticket",          emoji: "🎯" },
+    { text: "Analyse this CSV file",        emoji: "📊" },
+    { text: "Run my standup skill",         emoji: "⚡" },
+    { text: "Run ISP T Codes",              emoji: "💻" },
+    { text: "Create SAP Macro",             emoji: "🔧" },
+    { text: "Approve EDX ticket",           emoji: "✅" },
+    { text: "Review this pull request",     emoji: "🔎" },
   ];
 
   const container = document.getElementById('bubble-container');
@@ -113,15 +108,49 @@
     return bubbleTexts[idx];
   }
 
-  function spawnSingle(side, row) {
+  // Fixed spawn slots around the image — mimicking the reference video
+  // Scene is 1280x720, card is 680px wide centered
+  // Card left edge ~300, right edge ~980, top ~160, bottom ~560
+  function getSlots() {
     const sw = scene.offsetWidth;
     const sh = scene.offsetHeight;
-    const cardW = 820;
-    const cardLeft = (sw - cardW) / 2;
-    const cardRight = cardLeft + cardW;
-    const yPositions = [sh * 0.25, sh * 0.65];
+    const cw = 680;
+    const cl = (sw - cw) / 2;  // ~300
+    const cr = cl + cw;         // ~980
+    const ct = sh * 0.22;       // ~158
+    const cb = sh * 0.78;       // ~562
 
+    return [
+      // Left side
+      { x: cl - 180, y: sh * 0.25 },
+      { x: cl - 200, y: sh * 0.45 },
+      { x: cl - 170, y: sh * 0.65 },
+      // Right side
+      { x: cr + 10,  y: sh * 0.18 },
+      { x: cr + 10,  y: sh * 0.38 },
+      { x: cr + 10,  y: sh * 0.58 },
+      { x: cr + 10,  y: sh * 0.75 },
+      // Bottom left
+      { x: cl + 20,  y: cb + 10  },
+      // Bottom right
+      { x: cr - 200, y: cb + 10  },
+    ];
+  }
+
+  let slotQueue = [];
+  function nextSlot() {
+    if (slotQueue.length === 0) {
+      const slots = getSlots();
+      // Shuffle
+      slotQueue = slots.sort(() => Math.random() - 0.5);
+    }
+    return slotQueue.pop();
+  }
+
+  function spawnBubble() {
+    const slot = nextSlot();
     const b = pickText();
+
     const el = document.createElement('div');
     el.className = 'bubble';
     el.innerHTML = `<span class="dot"></span><span>${b.emoji}</span>${b.text}`;
@@ -130,106 +159,39 @@
 
     requestAnimationFrame(() => {
       const bw = el.offsetWidth;
-      let x, y;
-      y = yPositions[row];
-      if (side === 'left') {
-        x = cardLeft - bw * 0.75;
-      } else {
-        x = cardRight - bw * 0.25;
-      }
+      // Right-side bubbles: align left edge to slot x
+      // Left-side bubbles: align right edge to slot x
+      const x = slot.x < scene.offsetWidth / 2
+        ? slot.x - bw  // left side: right-align
+        : slot.x;      // right side: left-align
+
       el.style.left = x + 'px';
-      el.style.top = y + 'px';
+      el.style.top = slot.y + 'px';
 
       activeBubbles.push({
-        el, x, y,
-        vy: -(9 + Math.random() * 8),
-        vx: side === 'left' ? -(1 + Math.random() * 2) : (1 + Math.random() * 2),
+        el,
+        x, y: slot.y,
+        vy: -(12 + Math.random() * 8),
+        vx: slot.x < scene.offsetWidth / 2 ? -(0.5 + Math.random()) : (0.5 + Math.random()),
         opacity: 0,
         phase: 'fadein',
-        holdTimer: 2.5 + Math.random() * 2.0,
-      });
-    });
-  }
-
-  function spawnGroup() {
-    // Each of the 4 bubbles gets a UNIQUE Y slot — no shared rows
-    const sw = scene.offsetWidth;
-    const sh = scene.offsetHeight;
-    const cardW = 820;
-    const cardLeft = (sw - cardW) / 2;
-    const cardRight = cardLeft + cardW;
-
-    const slots = [
-      { side: 'left',  y: sh * 0.22 },
-      { side: 'left',  y: sh * 0.58 },
-      { side: 'right', y: sh * 0.35 },
-      { side: 'right', y: sh * 0.70 },
-    ];
-
-    slots.forEach(slot => {
-      const b = pickText();
-      const el = document.createElement('div');
-      el.className = 'bubble';
-      el.innerHTML = `<span class="dot"></span><span>${b.emoji}</span>${b.text}`;
-      el.style.opacity = 0;
-      container.appendChild(el);
-
-      requestAnimationFrame(() => {
-        const bw = el.offsetWidth;
-        const x = slot.side === 'left'
-          ? cardLeft - bw * 0.75
-          : cardRight - bw * 0.25;
-
-        el.style.left = x + 'px';
-        el.style.top = slot.y + 'px';
-
-        activeBubbles.push({
-          el, x, y: slot.y,
-          vy: -(9 + Math.random() * 8),
-          vx: slot.side === 'left' ? -(1 + Math.random() * 2) : (1 + Math.random() * 2),
-          opacity: 0,
-          phase: 'fadein',
-          holdTimer: 2.5 + Math.random() * 2.0,
-          slot,
-        });
+        holdTimer: 3.0 + Math.random() * 2.0,
       });
     });
   }
 
   let last = null;
-  let groupSpawnTimer = 5.0; // first group after 5s
-  let soloSpawnTimer  = 0;
-  let soloSpawnDelay  = 0;   // set after group spawns
+  let spawnTimer = 1.0;
 
   function animate(ts) {
     if (!last) last = ts;
     const dt = Math.min((ts - last) / 1000, 0.05);
     last = ts;
 
-    // Group spawn every 7-10s
-    groupSpawnTimer -= dt;
-    if (groupSpawnTimer <= 0) {
-      spawnGroup();
-      groupSpawnTimer = 7.0 + Math.random() * 3.0;
-      // After group, solo swaps start after 3s
-      soloSpawnDelay = 1.5 + Math.random() * 1.0;
-      soloSpawnTimer = soloSpawnDelay;
-    }
-
-    // Solo random swap between group spawns
-    soloSpawnTimer -= dt;
-    if (soloSpawnTimer <= 0 && activeBubbles.length > 0) {
-      // Fade out one random active bubble early
-      const alive = activeBubbles.filter(b => b.phase === 'hold');
-      if (alive.length > 0) {
-        const dying = alive[Math.floor(Math.random() * alive.length)];
-        dying.phase = 'fadeout';
-        // Spawn replacement in the same vertical slot but opposite or same side randomly
-        const side = Math.random() < 0.5 ? 'left' : 'right';
-        const row  = dying.y < scene.offsetHeight * 0.5 ? 0 : 1;
-        setTimeout(() => spawnSingle(side, row), 600);
-      }
-      soloSpawnTimer = 1.8 + Math.random() * 1.5;
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnBubble();
+      spawnTimer = 1.8 + Math.random() * 1.5;
     }
 
     for (let i = activeBubbles.length - 1; i >= 0; i--) {
@@ -238,13 +200,13 @@
       b.y += b.vy * dt;
 
       if (b.phase === 'fadein') {
-        b.opacity = Math.min(b.opacity + dt * 2.5, 1);
+        b.opacity = Math.min(b.opacity + dt * 2.0, 1);
         if (b.opacity >= 1) b.phase = 'hold';
       } else if (b.phase === 'hold') {
         b.holdTimer -= dt;
         if (b.holdTimer <= 0) b.phase = 'fadeout';
       } else if (b.phase === 'fadeout') {
-        b.opacity = Math.max(b.opacity - dt * 1.0, 0);
+        b.opacity = Math.max(b.opacity - dt * 0.8, 0);
         if (b.opacity <= 0) {
           b.el.remove();
           activeBubbles.splice(i, 1);
