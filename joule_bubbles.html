@@ -212,7 +212,7 @@
       spawnGroup();
       groupSpawnTimer = 7.0 + Math.random() * 3.0;
       // After group, solo swaps start after 3s
-      soloSpawnDelay = 3.0 + Math.random() * 1.5;
+      soloSpawnDelay = 1.5 + Math.random() * 1.0;
       soloSpawnTimer = soloSpawnDelay;
     }
 
@@ -229,7 +229,7 @@
         const row  = dying.y < scene.offsetHeight * 0.5 ? 0 : 1;
         setTimeout(() => spawnSingle(side, row), 600);
       }
-      soloSpawnTimer = 3.0 + Math.random() * 2.5;
+      soloSpawnTimer = 1.8 + Math.random() * 1.5;
     }
 
     for (let i = activeBubbles.length - 1; i >= 0; i--) {
